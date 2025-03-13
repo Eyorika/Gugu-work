@@ -1,4 +1,5 @@
 import { useState } from 'react';
+<<<<<<< HEAD
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../lib/types';
@@ -24,11 +25,24 @@ export default function SignupForm() {
   const [role, setRole] = useState<UserRole>(UserRole.Worker);
   const [error, setError] = useState('');
   const { signUp } = useAuth();
+=======
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { UserRole } from '../../lib/types';
+
+export default function SignupForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState<UserRole>(UserRole.Worker);
+  const [error, setError] = useState('');
+  const { signup } = useAuth();
+>>>>>>> 000a952a6c49a2de13f68bc1fb38cce32acb1548
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+<<<<<<< HEAD
       const signupData: SignupData = {
         email,
         password,
@@ -47,32 +61,55 @@ export default function SignupForm() {
 
       await signUp(signupData);
       navigate('/dashboard');
+=======
+      await signup(email, password, role);
+      navigate('/');
+>>>>>>> 000a952a6c49a2de13f68bc1fb38cce32acb1548
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed');
     }
   };
 
   return (
+<<<<<<< HEAD
     <div className="max-w-md mx-auto mt-10 p-8 bg-white rounded-xl shadow-lg border border-gray-100">
       <h2 className="text-3xl font-bold mb-8 text-primary text-center">Create Account</h2>
       {error && <p className="text-red-600 mb-4 text-center">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-gray-700 text-sm font-medium mb-2">Email</label>
+=======
+    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-6 text-primary">Sign Up</h2>
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+      <form onSubmit={handleSubmit}>
+        <div className="mb-4">
+          <label className="block text-gray-700 mb-2">Email</label>
+>>>>>>> 000a952a6c49a2de13f68bc1fb38cce32acb1548
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+<<<<<<< HEAD
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             required
           />
         </div>
         <div>
           <label className="block text-gray-700 text-sm font-medium mb-2">Password</label>
+=======
+            className="w-full p-2 border rounded"
+            required
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 mb-2">Password</label>
+>>>>>>> 000a952a6c49a2de13f68bc1fb38cce32acb1548
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+<<<<<<< HEAD
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             required
           />
@@ -83,6 +120,18 @@ export default function SignupForm() {
             value={role}
             onChange={(e) => setRole(e.target.value as UserRole)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+=======
+            className="w-full p-2 border rounded"
+            required
+          />
+        </div>
+        <div className="mb-6">
+          <label className="block text-gray-700 mb-2">Role</label>
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value as UserRole)}
+            className="w-full p-2 border rounded"
+>>>>>>> 000a952a6c49a2de13f68bc1fb38cce32acb1548
           >
             <option value={UserRole.Worker}>Worker</option>
             <option value={UserRole.Employer}>Employer</option>
@@ -90,6 +139,7 @@ export default function SignupForm() {
         </div>
         <button
           type="submit"
+<<<<<<< HEAD
           className="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-4 rounded-lg transition-colors"
         >
           Create Account
@@ -134,6 +184,13 @@ export default function SignupForm() {
           </button>
         </div>
       </div>
+=======
+          className="w-full bg-primary text-white py-2 px-4 rounded hover:bg-primary-dark"
+        >
+          Sign Up
+        </button>
+      </form>
+>>>>>>> 000a952a6c49a2de13f68bc1fb38cce32acb1548
     </div>
   );
 }
