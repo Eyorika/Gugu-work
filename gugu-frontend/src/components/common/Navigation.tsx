@@ -43,14 +43,27 @@ export default function Navigation() {
         <div className="flex justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="text-xl font-bold text-indigo-600">
-              Gugu Workforce
+            <Link to="/" className="text-xl font-bold text-blue-600">
+              GUGU
             </Link>
           </div>
 
+
+
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            {user ? (
+          {user && (
+  <div className="flex items-center space-x-4">
+    <img 
+      src={user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${user.email}`}
+      alt="Profile"
+      className="w-8 h-8 rounded-full"
+    />
+    <span className="text-sm font-medium">{user.email}</span>
+  </div>
+)}
+            
+                        {user ? (
               <>
                 {(user.user_metadata.role === UserRole.Employer
                   ? employerLinks
@@ -62,7 +75,7 @@ export default function Navigation() {
                     className={({ isActive }) =>
                       `px-3 py-2 rounded-md text-sm font-medium ${
                         isActive
-                          ? 'text-white bg-indigo-600'
+                          ? 'text-white bg-blue-600'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`
                     }

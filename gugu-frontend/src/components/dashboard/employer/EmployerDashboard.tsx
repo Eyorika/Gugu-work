@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { JobPost } from '../../../lib/types';
-
+import JobPostForm from '../../dashboard/employer/PostJobForm';
 export default function EmployerDashboard() {
   const [jobs, setJobs] = useState<JobPost[]>([]);
-  const [newJob, setNewJob] = useState({
+  const [] = useState({
     title: '',
     description: '',
     location: '',
@@ -16,29 +16,17 @@ export default function EmployerDashboard() {
   }, []);
 
   const fetchJobs = async () => {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return;
+
     const { data, error } = await supabase
       .from('jobs')
       .select('*')
-      .eq('employer_id', (await supabase.auth.getUser()).data.user?.id);
+      .eq('employer_id', user.id);
 
     if (!error) setJobs(data || []);
   };
 
-  const createJob = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const { data, error } = await supabase
-      .from('jobs')
-      .insert([{
-        ...newJob,
-        employer_id: (await supabase.auth.getUser()).data.user?.id,
-        status: 'open'
-      }]);
-
-    if (!error) {
-      setJobs([...jobs, ...(data || [])]);
-      setNewJob({ title: '', description: '', location: '', salary: '' });
-    }
-  };
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -46,48 +34,9 @@ export default function EmployerDashboard() {
       
       {/* Create Job Form */}
       <div className="mb-12 bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Post New Job</h2>
-        <form onSubmit={createJob} className="grid grid-cols-2 gap-4">
-          <input
-            type="text"
-            placeholder="Job Title"
-            value={newJob.title}
-            onChange={(e) => setNewJob({...newJob, title: e.target.value})}
-            className="p-2 border rounded"
-            required
-          />
-          <input
-            type="text"
-            placeholder="Location"
-            value={newJob.location}
-            onChange={(e) => setNewJob({...newJob, location: e.target.value})}
-            className="p-2 border rounded"
-            required
-          />
-          <input
-            type="text"
-            placeholder="Salary Range"
-            value={newJob.salary}
-            onChange={(e) => setNewJob({...newJob, salary: e.target.value})}
-            className="p-2 border rounded"
-            required
-          />
-          <textarea
-            placeholder="Job Description"
-            value={newJob.description}
-            onChange={(e) => setNewJob({...newJob, description: e.target.value})}
-            className="p-2 border rounded col-span-2"
-            rows={4}
-            required
-          />
-          <button
-            type="submit"
-            className="col-span-2 bg-primary text-white py-2 px-4 rounded hover:bg-primary-dark"
-          >
-            Post Job
-          </button>
-        </form>
-      </div>
+  <h2 className="text-xl font-semibold mb-4">Post New Job</h2>
+  <JobPostForm onPost={fetchJobs} />
+</div>
 
       {/* Job Listings */}
       <div>
