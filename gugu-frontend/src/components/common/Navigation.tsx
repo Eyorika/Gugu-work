@@ -43,7 +43,6 @@ export default function Navigation() {
         <div className="flex justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-<<<<<<< HEAD
             <Link to="/" className="text-xl font-bold text-blue-600">
               GUGU
             </Link>
@@ -65,16 +64,6 @@ export default function Navigation() {
 )}
             
                         {user ? (
-=======
-            <Link to="/" className="text-xl font-bold text-indigo-600">
-              Gugu Workforce
-            </Link>
-          </div>
-
-          {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-8">
-            {user ? (
->>>>>>> 000a952a6c49a2de13f68bc1fb38cce32acb1548
               <>
                 {(user.user_metadata.role === UserRole.Employer
                   ? employerLinks
@@ -86,11 +75,7 @@ export default function Navigation() {
                     className={({ isActive }) =>
                       `px-3 py-2 rounded-md text-sm font-medium ${
                         isActive
-<<<<<<< HEAD
                           ? 'text-white bg-blue-600'
-=======
-                          ? 'text-white bg-indigo-600'
->>>>>>> 000a952a6c49a2de13f68bc1fb38cce32acb1548
                           : 'text-gray-700 hover:bg-gray-100'
                       }`
                     }
