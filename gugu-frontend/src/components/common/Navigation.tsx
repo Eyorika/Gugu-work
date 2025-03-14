@@ -22,17 +22,14 @@ export default function Navigation() {
   };
 
   const employerLinks = [
-    { to: '/employer-dashboard', text: 'Dashboard' },
-    { to: '/post-job', text: 'Post Job' },
-    { to: '/my-listings', text: 'My Listings' },
-    { to: '/applications', text: 'Applications' },
+    { to: '/employer/dashboard', text: 'Dashboard' },
+    { to: '/employer/jobs', text: 'Manage Jobs' },
+    { to: '/employer/profile', text: 'Profile' },
   ];
 
   const workerLinks = [
-    { to: '/worker-dashboard', text: 'Dashboard' },
-    { to: '/jobs', text: 'Browse Jobs' },
-    { to: '/my-applications', text: 'My Applications' },
-    { to: '/profile', text: 'Profile' },
+    { to: '/worker/dashboard', text: 'Dashboard' },
+    { to: '/worker/profile', text: 'Profile' },
   ];
 
   if (loading) return null;
@@ -48,22 +45,9 @@ export default function Navigation() {
             </Link>
           </div>
 
-
-
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
-          {user && (
-  <div className="flex items-center space-x-4">
-    <img 
-      src={user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${user.email}`}
-      alt="Profile"
-      className="w-8 h-8 rounded-full"
-    />
-    <span className="text-sm font-medium">{user.email}</span>
-  </div>
-)}
-            
-                        {user ? (
+            {user ? (
               <>
                 {(user.user_metadata.role === UserRole.Employer
                   ? employerLinks
@@ -117,6 +101,17 @@ export default function Navigation() {
                   Sign Up
                 </NavLink>
               </>
+            )}
+
+            {user && (
+              <div className="flex items-center space-x-4">
+                <img 
+                  src={user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${user.email}`}
+                  alt="Profile"
+                  className="w-8 h-8 rounded-full"
+                />
+                <span className="text-sm font-medium">{user.email}</span>
+              </div>
             )}
           </div>
 

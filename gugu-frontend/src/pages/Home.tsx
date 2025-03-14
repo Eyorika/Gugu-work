@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
 
-// Constants for reusable data
+//reusable data
 const FEATURES = [
   {
     title: "Smart Hiring",
@@ -39,7 +39,7 @@ const STATS = [
   { number: '4.9', label: 'Average Rating' },
 ];
 
-// Animation configurations
+// Animation
 const fadeInLeft = {
   initial: { opacity: 0, x: -50 },
   animate: { opacity: 1, x: 0 },
@@ -57,7 +57,7 @@ export default function Home() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Hero Section */}
+
       <section className="h-screen bg-gradient-to-br from-primary via-[#1E293B] to-[#111827] text-white flex items-center justify-center px-6 overflow-hidden relative">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -left-40 w-96 h-96 bg-primary/10 rounded-full mix-blend-soft-light filter blur-3xl animate-float" />
@@ -116,8 +116,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-24 bg-accent">
+       <section className="py-24 bg-accent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-5xl font-bold text-center mb-20 text-text-dark">
             Modern Workforce Solutions
@@ -156,8 +155,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trending Opportunities */}
-      <section className="py-24 bg-gradient-to-br from-primary/5 to-secondary/5">
+       <section className="py-24 bg-gradient-to-br from-primary/5 to-secondary/5">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-5xl font-bold text-center mb-20 text-text-dark">
             Trending Opportunities
@@ -177,7 +175,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Statistics Section */}
+
       <section className="py-24 bg-text-dark text-text-light">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8 text-center">

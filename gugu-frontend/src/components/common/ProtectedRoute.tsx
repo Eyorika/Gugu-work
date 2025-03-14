@@ -3,29 +3,26 @@ import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../lib/types';
 import { ReactNode } from 'react';
 
-export default function ProtectedRoute({
-  children,
-  requiredRole,
-}: {
+interface ProtectedRouteProps {
   children: ReactNode;
   requiredRole?: UserRole;
-}) {
+}
+
+export default function ProtectedRoute({
+  children,
+  requiredRole
+}: ProtectedRouteProps) {
   const { user, role } = useAuth();
   const location = useLocation();
 
-  // Show loading state while auth is being checked
-  if (typeof user === 'undefined' || typeof role === 'undefined') {
-    return <div>Loading...</div>; // Replace with your loading component
-  }
-
-  // Redirect unauthenticated users
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
-  // Check role if required
   if (requiredRole && role !== requiredRole) {
-    return <Navigate to="/unauthorized" replace />;
+
+    return <Navigate to="/unauthorized" state={{ attemptedPath: location.pathname }} replace />;
   }
 
   return <>{children}</>;

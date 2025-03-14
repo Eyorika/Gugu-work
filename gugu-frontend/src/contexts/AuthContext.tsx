@@ -4,7 +4,7 @@ import { User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { UserRole } from '../lib/types';
 
-// Define interfaces at the top level
+
 interface WorkerSignupData {
   email: string;
   password: string;
@@ -43,22 +43,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        console.log('Session:', session); // Debug log
         if (error) throw error;
-        setUser(session?.user ?? null);
-        setRole(session?.user?.user_metadata?.role ?? null);
+        
+        if (session?.user) {
+          setUser(session.user);
+
+           const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+            
+          setRole(profile?.role === 'employer' ? UserRole.Employer : UserRole.Worker);
+        } else {
+          setUser(null);
+          setRole(null);
+        }
       } catch (error) {
         console.error('Session error:', error);
+        setUser(null);
+        setRole(null);
       } finally {
-        setLoading(false); // Ensure loading always stops
+        setLoading(false);
       }
     };
   
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        console.log('Auth state changed:', session); // Debug log
-        setUser(session?.user ?? null);
-        setRole(session?.user?.user_metadata?.role ?? null);
+        if (session?.user) {
+          
+          setUser(session.user);
+           const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+            
+          setRole(profile?.role === 'employer' ? UserRole.Employer : UserRole.Worker);
+        } else {
+          setUser(null);
+          setRole(null);
+        }
       }
     );
   
@@ -70,13 +95,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     role,
     signUp: async (data: WorkerSignupData | EmployerSignupData) => {
+      const userRole = 'companyName' in data ? UserRole.Employer : UserRole.Worker;
+      
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
           data: {
-            role: 'companyName' in data ? 'employer' : 'worker',
-            redirectTo: `${window.location.origin}/dashboard`
+            role: userRole,
+            firstName: data.firstName,
+            lastName: data.lastName
           }
         }
       });
@@ -90,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         first_name: data.firstName,
         last_name: data.lastName,
         city: data.city,
-        role: 'companyName' in data ? 'employer' : 'worker',
+        role: userRole,
         ...('companyName' in data && { company_name: data.companyName }),
         ...('skills' in data && { 
           skills: data.skills,
@@ -100,22 +128,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { error: profileError } = await supabase
         .from('profiles')
-        .insert(profileData);
-
+        .upsert(profileData);
+    
       if (profileError) throw profileError;
-
+      
+      // Set role immediately after successful signup
+      setRole(userRole);
+      
       // Redirect based on role
-      const role = 'companyName' in data ? 'employer' : 'worker';
-      navigate(role === 'employer' ? '/employer-dashboard' : '/worker-dashboard');
+      navigate(userRole === UserRole.Employer ? '/employer/dashboard' : '/worker/dashboard');
     },
+    
     signIn: async (email: string, password: string) => {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
+      
       if (error) throw error;
+      
+      // Get user profile to determine role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+      
+      const userRole = profile?.role === 'employer' ? UserRole.Employer : UserRole.Worker;
+      
       setUser(data.user);
-      navigate(data.user.user_metadata?.role === 'employer' ? '/employer-dashboard' : '/worker-dashboard');
+      setRole(userRole);
+      
+      // Navigate based on role
+      navigate(userRole === UserRole.Employer ? '/employer/dashboard' : '/worker/dashboard');
     },
     signOut: async () => {
       const { error } = await supabase.auth.signOut();
