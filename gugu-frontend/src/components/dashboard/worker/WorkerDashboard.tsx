@@ -91,45 +91,46 @@ export default function WorkerDashboard() {
 
   const fetchApplications = async () => {
     try {
-      const { 
-        data: { user }, 
-        error: authError 
-      } = await supabase.auth.getUser();
-  
-      if (authError) throw authError; 
+      const { data: { user } } = await supabase.auth.getUser();
+    
       if (!user) {
-        setError('User not authenticated');
+        setError('Authentication required');
         return;
+  
+      
       }
 
-      const { data, error: applicationsError } = await supabase
-  .from('applications')
-  .select(`
-    *,
-    jobs!left(
-      id,
-      title,
-      location,
-      salary,
-      status,
-      employer:profiles!jobs_employer_id_fkey(
-        company_name,
-        city
-      )
-    )
-  `)
-  .eq('worker_id', user.id)
-  .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+      .from('applications')
+      .select(`
+        *,
+        jobs!left(
+          id,
+          title,
+          location,
+          salary,
+          status,
+          employer:profiles!jobs_employer_id_fkey(
+            company_name,
+            city
+          )
+        )
+      `)
+      .eq('worker_id', user.id)
+      .order('created_at', { ascending: false });
 
-      if (applicationsError) {
-        throw applicationsError;
-      }
+      if (error) throw error;
 
-      setApplications(data || []);
+    const validData = data?.filter(app => app.jobs !== null) || [];
+    setApplications(validData);
+
+      //setApplications(data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while fetching applications');
+      console.error('Application fetch error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load applications');
     }
   };
+
 
   const applyForJob = async (jobId: string) => {
     try {
