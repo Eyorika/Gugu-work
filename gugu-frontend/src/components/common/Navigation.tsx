@@ -6,14 +6,11 @@ import { UserRole } from '../../lib/types';
 import { FiMenu, FiX } from 'react-icons/fi';
 
 export default function Navigation() {
-  const { user } = useAuth();
+  const { user, role, loading } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setLoading(false);
-  }, [user]);
+  console.log('Navigation - Current state:', { user, role, loading });
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -32,7 +29,12 @@ export default function Navigation() {
     { to: '/worker/profile', text: 'Profile' },
   ];
 
-  if (loading) return null;
+  if (loading) {
+    console.log('Navigation - Still loading, not rendering anything');
+    return null;
+  }
+
+  console.log('Navigation - Rendering with role:', role);
 
   return (
     <header className="bg-white shadow-sm">
@@ -49,7 +51,7 @@ export default function Navigation() {
           <div className="hidden md:flex items-center space-x-8">
             {user ? (
               <>
-                {(user.user_metadata.role === UserRole.Employer
+                {(role === UserRole.Employer
                   ? employerLinks
                   : workerLinks
                 ).map((link) => (
@@ -106,7 +108,7 @@ export default function Navigation() {
             {user && (
               <div className="flex items-center space-x-4">
                 <img 
-                  src={user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${user.email}`}
+                  src={user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email}`}
                   alt="Profile"
                   className="w-8 h-8 rounded-full"
                 />
@@ -136,7 +138,7 @@ export default function Navigation() {
             <div className="pt-2 space-y-1">
               {user ? (
                 <>
-                  {(user.user_metadata.role === UserRole.Employer
+                  {(role === UserRole.Employer
                     ? employerLinks
                     : workerLinks
                   ).map((link) => (

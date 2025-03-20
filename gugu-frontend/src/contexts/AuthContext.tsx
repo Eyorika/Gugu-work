@@ -1,9 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { User } from '@supabase/supabase-js';
-import { useNavigate } from 'react-router-dom';
 import { UserRole } from '../lib/types';
-
+import { useNavigate } from 'react-router-dom';
+import { User } from '@supabase/supabase-js';
 
 interface WorkerSignupData {
   email: string;
@@ -21,16 +20,18 @@ interface EmployerSignupData {
   firstName: string;
   lastName: string;
   city: string;
-  companyName?: string;
+  companyName: string;
 }
 
 interface AuthContextType {
   user: User | null;
   role: UserRole | null;
+  loading: boolean;
   signUp: (data: WorkerSignupData | EmployerSignupData) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
+
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -42,45 +43,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const getSession = async () => {
       try {
+        console.log('AuthProvider - Getting session...');
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        if (error) {
+          console.error('AuthProvider - Session error:', error);
+          throw error;
+        }
         
+        console.log('AuthProvider - Session:', session);
         if (session?.user) {
+          console.log('AuthProvider - User found:', session.user.email);
           setUser(session.user);
 
-           const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', session.user.id)
             .single();
             
-          setRole(profile?.role === 'employer' ? UserRole.Employer : UserRole.Worker);
+          if (profileError) {
+            console.error('AuthProvider - Profile fetch error:', profileError);
+            throw profileError;
+          }
+          
+          console.log('AuthProvider - Profile:', profile);
+          const userRole = profile?.role === 'employer' ? UserRole.Employer : UserRole.Worker;
+          console.log('AuthProvider - Setting role:', userRole);
+          setRole(userRole);
         } else {
+          console.log('AuthProvider - No session found');
           setUser(null);
           setRole(null);
         }
       } catch (error) {
-        console.error('Session error:', error);
+        console.error('AuthProvider - Error:', error);
         setUser(null);
         setRole(null);
       } finally {
+        console.log('AuthProvider - Setting loading to false');
         setLoading(false);
       }
     };
   
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        console.log('AuthProvider - Auth state changed:', _event);
         if (session?.user) {
-          
+          console.log('AuthProvider - New user:', session.user.email);
           setUser(session.user);
-           const { data: profile } = await supabase
+          const { data: profile } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', session.user.id)
             .single();
             
-          setRole(profile?.role === 'employer' ? UserRole.Employer : UserRole.Worker);
+          const userRole = profile?.role === 'employer' ? UserRole.Employer : UserRole.Worker;
+          console.log('AuthProvider - Setting role from auth state change:', userRole);
+          setRole(userRole);
         } else {
+          console.log('AuthProvider - User signed out');
           setUser(null);
           setRole(null);
         }
@@ -94,8 +115,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     user,
     role,
+    loading,
     signUp: async (data: WorkerSignupData | EmployerSignupData) => {
       const userRole = 'companyName' in data ? UserRole.Employer : UserRole.Worker;
+      console.log('AuthProvider - Signing up with role:', userRole);
       
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
@@ -134,12 +157,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Set role immediately after successful signup
       setRole(userRole);
+      console.log('AuthProvider - Signup successful, navigating to:', userRole === UserRole.Employer ? '/employer/dashboard' : '/worker/dashboard');
       
       // Redirect based on role
       navigate(userRole === UserRole.Employer ? '/employer/dashboard' : '/worker/dashboard');
     },
     
     signIn: async (email: string, password: string) => {
+      console.log('AuthProvider - Attempting sign in');
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -155,6 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
       
       const userRole = profile?.role === 'employer' ? UserRole.Employer : UserRole.Worker;
+      console.log('AuthProvider - Sign in successful, role:', userRole);
       
       setUser(data.user);
       setRole(userRole);
@@ -163,24 +189,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       navigate(userRole === UserRole.Employer ? '/employer/dashboard' : '/worker/dashboard');
     },
     signOut: async () => {
+      console.log('AuthProvider - Signing out');
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       setUser(null);
+      setRole(null);
       navigate('/');
     }
   };
 
   return (
     <AuthContext.Provider value={value}>
-    {loading ? <div>Loading...</div> : children}
-  </AuthContext.Provider>
+      {loading ? (
+        <div 
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white bg-opacity-90 backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="w-12 h-12 border-4 border-gray-200 rounded-full animate-spin border-t-blue-600"></div>
+          <p className="mt-4 text-lg font-medium text-gray-600">Loading...</p>
+          <span className="sr-only">Content is loading...</span>
+        </div>
+      ) : (
+        children
+      )}
+    </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

@@ -1,34 +1,72 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Application, ApplicationStatus, UserRole } from '../../lib/types';
+import { ApplicationStatus, UserRole, JobPost } from '../../lib/types';
 import { useAuth } from '../../contexts/AuthContext';
+import { useParams } from 'react-router-dom';
 
-interface Props {
-  jobId: string;
-  onClose: () => void;
+interface WorkerProfile {
+  id: string;
+  email: string;
+  role: string;
+  skills: string[];
+  hourly_rate: number;
+  full_name: string;
 }
 
-const JobApplications = ({ jobId, onClose }: Props) => {
+interface JobWithEmployer {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  hourly_rate: number;
+  employer_id: string;
+  employer?: {
+    company_name: string;
+  };
+}
+
+interface Application {
+  id: string;
+  status: ApplicationStatus;
+  created_at: string;
+  job_id: string;
+  worker_id: string;
+  worker?: WorkerProfile;
+  jobs?: JobWithEmployer;
+}
+
+interface Props {
+  onClose: () => void;
+  job?: JobPost;
+}
+
+const JobApplications = ({ onClose, job }: Props) => {
+  const { jobId } = useParams<{ jobId?: string }>();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { role, user } = useAuth();
 
   useEffect(() => {
-    fetchApplications();
-  }, [jobId, role, user?.id]);
+    // Fetch applications either by jobId param or job prop
+    const targetJobId = jobId || job?.id;
+    if (user?.id) {
+      fetchApplications(targetJobId);
+    } else {
+      setLoading(false);
+    }
+  }, [jobId, job?.id, role, user?.id]);
 
-  const fetchApplications = async () => {
+  const fetchApplications = async (targetJobId?: string) => {
     try {
       setLoading(true);
       setError(null);
-  
+
       if (!user?.id) {
         setError('Authentication required');
         return;
       }
-  
-      //  base query
+
       let query = supabase
         .from('applications')
         .select(`
@@ -39,85 +77,88 @@ const JobApplications = ({ jobId, onClose }: Props) => {
           worker_id,
           worker:profiles!worker_id(
             id,
-            first_name,
-            last_name,
             email,
             role,
             skills,
-            hourly_rate
+            hourly_rate,
+            full_name
           ),
           jobs!job_id(
             id,
             title,
             description,
             location,
-            salary,
+            hourly_rate,
             employer_id,
             employer:profiles!jobs_employer_id_fkey(
               company_name
             )
           )
         `);
-  
-      //   role-specific filters
+
+      // Apply filters based on role and job ID
       if (role === UserRole.Worker) {
         query = query.eq('worker_id', user.id);
       } else if (role === UserRole.Employer) {
-        query = query
-          .eq('job_id', jobId)
-          .eq('jobs.employer_id', user.id);
+        if (!targetJobId) {
+          // If no job ID is provided for employer, show all applications for their jobs
+          query = query.eq('jobs.employer_id', user.id);
+        } else {
+          // If job ID is provided, show applications for that specific job
+          query = query
+            .eq('job_id', targetJobId)
+            .eq('jobs.employer_id', user.id);
+        }
       }
-  
 
       const { data, error: fetchError } = await query
-      .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
-    if (fetchError) throw fetchError;
+      if (fetchError) throw fetchError;
 
-    const formattedData: Application[] = (data || []).map((app: any) => ({
-      id: app.id,
-      status: app.status,
-      created_at: app.created_at,
-      job_id: app.job_id,
-      worker_id: app.worker_id,
-      worker: app.worker ? {
-        id: app.worker.id,
-        first_name: app.worker.first_name,
-        last_name: app.worker.last_name,
-        email: app.worker.email,
-        role: app.worker.role,
-        skills: app.worker.skills,
-        hourly_rate: app.worker.hourly_rate
-      } : undefined,
-      jobs: app.jobs ? {
-        id: app.jobs.id,
-        title: app.jobs.title,
-        description: app.jobs.description,
-        location: app.jobs.location,
-        salary: app.jobs.salary,
-        employer_id: app.jobs.employer_id,
-        employer: app.jobs.employer ? {
-          company_name: app.jobs.employer.company_name
+      console.log('Applications fetched:', data);
+
+      const formattedData: Application[] = (data || []).map((app: any) => ({
+        id: app.id,
+        status: app.status,
+        created_at: app.created_at,
+        job_id: app.job_id,
+        worker_id: app.worker_id,
+        worker: app.worker ? {
+          id: app.worker.id,
+          email: app.worker.email,
+          role: app.worker.role,
+          skills: app.worker.skills,
+          hourly_rate: app.worker.hourly_rate,
+          full_name: app.worker.full_name || 'Anonymous'
+        } : undefined,
+        jobs: app.jobs ? {
+          id: app.jobs.id,
+          title: app.jobs.title,
+          description: app.jobs.description,
+          location: app.jobs.location,
+          hourly_rate: app.jobs.hourly_rate,
+          employer_id: app.jobs.employer_id,
+          employer: app.jobs.employer ? {
+            company_name: app.jobs.employer.company_name
+          } : undefined
         } : undefined
-      } : undefined
-    }));
+      }));
 
-
-     setApplications(formattedData);
-
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'Failed to fetch applications');
-  } finally {
-    setLoading(false);
-  }
-};
-
+      console.log('Formatted applications:', formattedData);
+      setApplications(formattedData);
+    } catch (err) {
+      console.error('Error fetching applications:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch applications');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const updateStatus = async (applicationId: string, newStatus: ApplicationStatus) => {
     try {
       setError(null);
 
-      // Verify user has permission to update
       const application = applications.find(app => app.id === applicationId);
       if (!application) {
         throw new Error('Application not found');
@@ -195,8 +236,11 @@ const JobApplications = ({ jobId, onClose }: Props) => {
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className="font-medium">
-                    {application.worker?.first_name} {application.worker?.last_name}
+                    {application.worker?.full_name}
                   </h3>
+                  <p className="text-sm text-gray-600">
+                    {application.worker?.email}
+                  </p>
                   <p className="text-sm text-gray-600">
                     {application.jobs?.title} at {application.jobs?.employer?.company_name}
                   </p>

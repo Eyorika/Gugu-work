@@ -41,7 +41,7 @@ export default function SignupForm() {
       if (role === UserRole.Employer) {
         signupData.companyName = 'My Company';
       } else {
-        signupData.skills = [];
+        signupData.skills = signupData.skills || [];
         signupData.hourlyRate = 0;
       }
 

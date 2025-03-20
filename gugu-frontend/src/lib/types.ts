@@ -7,9 +7,7 @@ export enum UserRole {
   };
   
   export type JobPost = {
-    employer: any;
-    hasApplied: any;
-    id: string;  
+    id: string;
     title: string;
     description: string;
     location: string;
@@ -17,10 +15,16 @@ export enum UserRole {
     status: 'open' | 'closed';
     employer_id: string;
     created_at?: string;
-    //applications?: { count: number };
     updated_at?: string;
     application_count?: number; 
-    applications?: Application[]; 
+    employer?: {
+      id: string;
+      company_name: string;
+      city: string;
+    };
+    applications?: Application[];
+    hasApplied?: boolean;
+    [key: string]: any;
   };
 
   export enum JobStatus {
