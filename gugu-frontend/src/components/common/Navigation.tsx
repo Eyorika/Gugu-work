@@ -1,7 +1,7 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { UserRole } from '../../lib/types';
 import { FiMenu, FiX } from 'react-icons/fi';
 

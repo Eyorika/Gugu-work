@@ -160,7 +160,7 @@ export default function JobPostForm({ job, onPost, onCancel }: Props) {
                 </div>
 
                 <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Hourly Rate (USD) *</label>
+                    <label className="block text-sm font-medium text-gray-700">Hourly Rate (ETB) *</label>
                     <input
                         type="number"
                         placeholder="Enter hourly rate"

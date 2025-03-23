@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { JobPost } from '../../../lib/types';
 import JobPostForm from '../../jobs/JobPostForm';
+
 
 export default function EmployerJobPost() {
   const { user } = useAuth();
@@ -11,9 +13,24 @@ export default function EmployerJobPost() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const { id: jobId } = useParams();
+  const navigate = useNavigate();
+
   useEffect(() => {
-    fetchJobs();
-  }, [user?.id]);
+    if (jobId) {
+      supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single()
+        .then(({ data, error }) => {
+          if (data) setSelectedJob(data);
+          if (error) console.error('Error fetching job:', error);
+        });
+    } else {
+      fetchJobs();
+    }
+  }, [user?.id, jobId]);
 
   const fetchJobs = async () => {
     try {
@@ -52,7 +69,7 @@ export default function EmployerJobPost() {
   };
 
   const handlePostSuccess = () => {
-    setSelectedJob(null);
+    navigate('/employer/dashboard');
     fetchJobs();
   };
 

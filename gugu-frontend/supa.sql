@@ -171,3 +171,27 @@ using (
   auth.role() = 'authenticated' AND
   (storage.foldername(name))[1] = auth.uid()::text
 );
+
+-- Allow users to view their own profile
+CREATE POLICY "User profile visibility" 
+ON public.profiles
+FOR SELECT USING (
+  id = auth.uid()
+);
+
+-- Allow users to create their profile
+CREATE POLICY "User profile creation"
+ON public.profiles
+FOR INSERT WITH CHECK (
+  id = auth.uid()
+);
+
+-- Allow users to update their own profile
+CREATE POLICY "User profile updates"
+ON public.profiles
+FOR UPDATE USING (
+  id = auth.uid()
+) WITH CHECK (
+  id = auth.uid()
+);
+

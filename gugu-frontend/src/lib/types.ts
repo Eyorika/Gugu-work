@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+
 export type ApplicationStatus = 'pending' | 'accepted' | 'rejected' | 'withdrawn';
 
 export enum UserRole {
@@ -20,7 +21,7 @@ export enum UserRole {
     employer?: {
       id: string;
       company_name: string;
-      city: string;
+      address: string;
     };
     applications?: Application[];
     hasApplied?: boolean;
@@ -55,11 +56,22 @@ export enum UserRole {
     };
     worker?: {
       id: string;
-      first_name: string;
-      last_name: string;
+      full_name: string;
       email: string;
       role: string;
       skills: string[];
       hourly_rate: number;
     };
   };
+
+  export interface Testimonial {
+    id: string;
+    content: string;
+    role: UserRole;
+    created_at: string;
+    profiles: {
+      full_name: string;
+      photo_url?: string;
+      role: UserRole; 
+    };
+  }

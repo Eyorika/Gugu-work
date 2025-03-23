@@ -3,24 +3,23 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../lib/types';
 
+
 interface SignupData {
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
-  city: string;
+  full_name: string;
+  address: string;
   role: UserRole;
-  companyName?: string;
-  skills?: string[];
-  hourlyRate?: number;
+  companyName: string; 
+  skills: string[];          
+  hourlyRate: number;        
 }
 
 export default function SignupForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [firstName] = useState('');
-  const [lastName] = useState('');
-  const [city] = useState('');
+  const [full_name] = useState('');
+  const [address] = useState('');
   const [role, setRole] = useState<UserRole>(UserRole.Worker);
   const [error, setError] = useState('');
   const { signUp } = useAuth();
@@ -32,19 +31,14 @@ export default function SignupForm() {
       const signupData: SignupData = {
         email,
         password,
-        firstName,
-        lastName,
-        city,
-        role
+        full_name,
+        address,
+        role,
+        companyName: role === UserRole.Employer ? 'My Company' : '',
+        skills: role === UserRole.Worker ? [] : [],
+        hourlyRate: role === UserRole.Worker ? 0 : 0
       };
-
-      if (role === UserRole.Employer) {
-        signupData.companyName = 'My Company';
-      } else {
-        signupData.skills = signupData.skills || [];
-        signupData.hourlyRate = 0;
-      }
-
+  
       await signUp(signupData);
       navigate('/dashboard');
     } catch (err) {
@@ -72,6 +66,7 @@ export default function SignupForm() {
           <input
             type="password"
             value={password}
+            
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             required

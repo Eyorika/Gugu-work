@@ -90,25 +90,20 @@ const JobApplications = ({ onClose, job }: Props) => {
             location,
             hourly_rate,
             employer_id,
-            employer:profiles!jobs_employer_id_fkey(
+            employer:profiles!employer_id(
               company_name
             )
           )
         `);
 
-      // Apply filters based on role and job ID
-      if (role === UserRole.Worker) {
-        query = query.eq('worker_id', user.id);
-      } else if (role === UserRole.Employer) {
-        if (!targetJobId) {
-          // If no job ID is provided for employer, show all applications for their jobs
-          query = query.eq('jobs.employer_id', user.id);
-        } else {
-          // If job ID is provided, show applications for that specific job
-          query = query
-            .eq('job_id', targetJobId)
-            .eq('jobs.employer_id', user.id);
-        }
+      // If we have a specific job (either from props or URL params)
+      if (targetJobId) {
+        query = query.eq('job_id', targetJobId);
+      }
+
+      // For employers, ensure they can only see applications for their jobs
+      if (role === UserRole.Employer) {
+        query = query.eq('jobs.employer_id', user.id);
       }
 
       const { data, error: fetchError } = await query
@@ -268,7 +263,7 @@ const JobApplications = ({ onClose, job }: Props) => {
 
               <div className="flex items-center justify-between mt-3">
                 <p className="text-sm text-gray-600">
-                  Hourly Rate: ${application.worker?.hourly_rate}
+                  Hourly Rate: ETB{application.worker?.hourly_rate}
                 </p>
                 
                 {((role === UserRole.Employer && application.status === 'pending') ||

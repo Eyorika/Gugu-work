@@ -29,6 +29,7 @@ export default function LoginForm() {
           <label className="block text-gray-700 text-sm font-medium mb-2">Email</label>
           <input
             type="email"
+            placeholder='examplw@x.com'
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
@@ -40,6 +41,7 @@ export default function LoginForm() {
           <input
             type="password"
             value={password}
+            placeholder='***********************'
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             required

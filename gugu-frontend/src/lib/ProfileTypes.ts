@@ -7,7 +7,7 @@ export enum UserRole {
     id: string;
     role: UserRole;
     completion_percent: number;
-    
+    email: string;
     full_name: string;
     username: string;
     phone: string;

@@ -1,8 +1,5 @@
 import type { JobPost } from '../../lib/types';
 
-interface JobStatsProps {
-  jobs: JobPost[];
-}
 
 const JobStats = ({ jobs }: { jobs: JobPost[] }) => (
   <div className="grid grid-cols-3 gap-4 mb-8">

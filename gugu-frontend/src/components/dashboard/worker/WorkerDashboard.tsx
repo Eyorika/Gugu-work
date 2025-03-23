@@ -34,19 +34,8 @@ interface ApplicationWithJob extends Omit<JobPost, 'status' | 'salary'> {
   hourly_rate: number;
 }
 
-interface JobResponse {
-  id: string;
-  title: string;
-  description: string;
-  location: string;
-  hourly_rate: number;
-  status: string;
-  created_at: string;
-  employer_id: string;
-  employer: EmployerProfile;
-}
 
-interface JobData {
+/*interface JobData {
   id: string;
   title: string;
   description: string;
@@ -57,16 +46,8 @@ interface JobData {
   employer: {
     company_name: string;
   };
-}
+}*/
 
-interface ApplicationResponse {
-  id: string;
-  job_id: string;
-  worker_id: string;
-  status: ApplicationStatus;
-  created_at: string;
-  jobs: JobData;
-}
 
 type SortOrder = 'newest' | 'oldest' | 'today' | 'this-week' | 'this-month';
 
@@ -136,111 +117,70 @@ export default function WorkerDashboard() {
     }
   };
 
+  // Optimize the loadData function
   const loadData = async () => {
     try {
-      console.log('WorkerDashboard - Starting data load');
       setLoading(true);
       setError(null);
-
-      // First, fetch all open jobs
-      console.log('WorkerDashboard - Fetching jobs...');
-      const { data: jobsData, error: jobsError } = await supabase
-        .from('jobs')
-        .select(`
-          id,
-          title,
-          description,
-          location,
-          hourly_rate,
-          status,
-          created_at,
-          employer_id,
-          employer:profiles(
-            id,
-            company_name,
-            username
-          )
-        `)
-        .eq('status', 'open')
-        .order('created_at', { ascending: false });
-
-      if (jobsError) {
-        console.error('Error fetching jobs:', jobsError);
-        throw new Error('Failed to fetch jobs');
-      }
-
-      console.log('Jobs fetched:', jobsData?.length, jobsData);
-
-      // Then fetch the worker's applications
-      console.log('WorkerDashboard - Fetching applications...');
-      const { data: applicationsData, error: applicationsError } = await supabase
-        .from('applications')
-        .select(`
-          id,
-          job_id,
-          worker_id,
-          status,
-          created_at,
-          jobs(
+  
+      // Combine both queries into a single Promise.all
+      const [jobsResponse, applicationsResponse] = await Promise.all([
+        supabase
+          .from('jobs')
+          .select(`
             id,
             title,
             description,
             location,
             hourly_rate,
-            employer_id,
+            status,
             created_at,
-            employer:profiles(
-              company_name,
-              username
+            employer_id,
+            employer:profiles(id, company_name, username)
+          `)
+          .eq('status', 'open')
+          .order('created_at', { ascending: false }),
+        
+        supabase
+          .from('applications')
+          .select(`
+            id,
+            job_id,
+            worker_id,
+            status,
+            created_at,
+            jobs(
+              id,
+              title,
+              description,
+              location,
+              hourly_rate,
+              employer_id,
+              created_at,
+              employer:profiles(company_name, username)
             )
-          )
-        `)
-        .eq('worker_id', user?.id);
-
-      if (applicationsError) {
-        console.error('Error fetching applications:', applicationsError);
-        throw new Error('Failed to fetch applications');
-      }
-
-      console.log('Applications fetched:', applicationsData?.length, applicationsData);
-
-      // Type guard function to ensure data shape
-      const isValidJobData = (data: any): data is JobResponse => {
-        return data && 
-               typeof data.id === 'string' && 
-               data.employer && 
-               typeof data.employer.company_name === 'string';
-      };
-
-      const isValidApplicationData = (data: any): data is ApplicationResponse => {
-        return data && 
-               typeof data.id === 'string' && 
-               data.jobs && 
-               typeof data.jobs.id === 'string' &&
-               typeof data.jobs.title === 'string' &&
-               typeof data.jobs.description === 'string' &&
-               typeof data.jobs.location === 'string' &&
-               typeof data.jobs.hourly_rate === 'number' &&
-               typeof data.jobs.employer_id === 'string' &&
-               data.jobs.employer &&
-               typeof data.jobs.employer.company_name === 'string';
-      };
-
-      // Process jobs with application status
-      const processedJobs = (jobsData || []).map(job => {
-        const applications = (applicationsData || [])
-          .filter(app => app.job_id === job.id);
-        
-        // Get the employer data - handle potential array response
+          `)
+          .eq('worker_id', user?.id)
+      ]);
+  
+      // Handle errors
+      if (jobsResponse.error) throw jobsResponse.error;
+      if (applicationsResponse.error) throw applicationsResponse.error;
+  
+      // Fix the processedJobs mapping
+      const processedJobs = (jobsResponse.data || []).map(job => {
+        const applications = (applicationsResponse.data || [])
+          .filter(app => app.job_id === job.id)
+          .map(app => ({
+            id: app.id,
+            job_id: app.job_id,
+            worker_id: app.worker_id,
+            status: app.status,
+            created_at: app.created_at
+          }));
+  
         const employerData = Array.isArray(job.employer) ? job.employer[0] : job.employer;
-        
-        // Ensure employer data is properly structured
-        const employer: EmployerProfile = {
-          id: employerData?.id || '',
-          company_name: employerData?.company_name || 'Unknown Company',
-          username: employerData?.username || ''
-        };
-
+  
         return {
           id: job.id,
           title: job.title,
@@ -251,21 +191,17 @@ export default function WorkerDashboard() {
           created_at: job.created_at,
           employer_id: job.employer_id,
           applicationStatus: applications[0]?.status || null,
-          applications: applications.map(app => ({
-            id: app.id,
-            job_id: app.job_id,
-            worker_id: app.worker_id,
-            status: app.status,
-            created_at: app.created_at
-          })),
-          employer
+          applications: applications,
+          employer: {
+            id: employerData?.id || '',
+            company_name: employerData?.company_name || 'Unknown Company',
+            username: employerData?.username || ''
+          }
         } as JobWithStatus;
       });
-
-      console.log('Processed jobs:', processedJobs.length, processedJobs);
-
-      // Process applications with job details
-      const processedApplications = (applicationsData || [])
+  
+      // Fix the processedApplications mapping
+      const processedApplications = (applicationsResponse.data || [])
         .filter(app => app.jobs)
         .map(app => {
           const jobData = Array.isArray(app.jobs) ? app.jobs[0] : app.jobs;
@@ -276,7 +212,7 @@ export default function WorkerDashboard() {
             title: jobData.title,
             description: jobData.description,
             location: jobData.location,
-            hourly_rate: jobData.hourly_rate,
+            hourly_rate: jobData.hourly_rate || 0, // Ensure hourly_rate is always present
             employer_id: jobData.employer_id,
             created_at: app.created_at,
             applicationStatus: app.status,
@@ -285,13 +221,10 @@ export default function WorkerDashboard() {
             }
           } as ApplicationWithJob;
         });
-
-      console.log('Processed applications:', processedApplications.length, processedApplications);
-
+  
       setJobs(processedJobs);
       setApplications(processedApplications);
     } catch (err) {
-      console.error('WorkerDashboard - Error loading data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
     } finally {
       setLoading(false);
@@ -359,6 +292,9 @@ export default function WorkerDashboard() {
         >
           Edit Profile
         </Link>
+        <Link to="/testimonials" className="nav-link">
+  Testimonials
+</Link>
       </div>
       
       {/* Available Jobs Section */}
@@ -399,7 +335,7 @@ export default function WorkerDashboard() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  ${job.hourly_rate}/hr
+                  ETB{job.hourly_rate}/hr
                 </p>
                 <p className="text-gray-500 text-sm flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -470,7 +406,7 @@ export default function WorkerDashboard() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  ${application.hourly_rate}/hr
+                  ETB{application.hourly_rate}/hr
                 </p>
                 <p className="text-gray-500 text-sm flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

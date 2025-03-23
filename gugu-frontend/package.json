@@ -11,33 +11,17 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@react-spring/web": "^9.7.5",
     "@supabase/supabase-js": "^2.49.1",
     "@tailwindcss/postcss": "^4.0.13",
     "formik": "^2.4.6",
     "framer-motion": "^12.5.0",
-
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.0.1",
     "react-router-dom": "^6.22.3",
-    "yup": "^1.6.1"
-  },
-  "devDependencies": {
-    "@eslint/js": "^8.56.0",
-    "@fontsource/inter": "^5.0.16",
-    "@tailwindcss/nesting": "^0.0.0-insiders.565cd3e",
-    "@types/react": "^18.2.64",
-    "@types/react-dom": "^18.2.21",
-    "@vitejs/plugin-react": "^4.2.1",
-    "autoprefixer": "^10.4.19",
-    "eslint": "^8.56.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.5",
-
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-icons": "^5.5.0",
-    "react-router-dom": "^7.3.0",
+    "react-virtualized": "^9.22.6",
+    "react-window": "^1.8.11",
     "yup": "^1.6.1"
   },
   "devDependencies": {
@@ -51,15 +35,11 @@
     "eslint": "^9.21.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.19",
-
     "globals": "^15.15.0",
     "postcss": "^8.4.38",
     "postcss-nesting": "^13.0.1",
     "tailwindcss": "^3.4.3",
-    "typescript": "~5.3.3",
-    "typescript-eslint": "^7.2.0",
-    "vite": "^5.1.6",
-     "typescript": "~5.7.2",
+    "typescript": "~5.7.2",
     "typescript-eslint": "^8.24.1",
     "vite": "^6.2.0"
   }

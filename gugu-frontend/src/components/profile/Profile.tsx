@@ -147,7 +147,7 @@ const Profile = () => {
               </li>
               <li className="flex items-center gap-2">
                 <CurrencyDollarIcon className="w-5 h-5 text-gray-600" />
-                <span className="text-gray-700">Hourly Rate: ${profile.hourly_rate}</span>
+                <span className="text-gray-700">Hourly Rate: ETB{profile.hourly_rate}</span>
               </li>
               {profile.skills && (
                 <li className="flex items-start gap-2">
@@ -183,7 +183,7 @@ const Profile = () => {
   );
 };
 
-// Example icon components (replace with actual icons)
+//icon components (replace with actual icons)
 const PhoneIcon = ({ className }: { className?: string }) => <svg className={className}>...</svg>;
 const MapPinIcon = ({ className }: { className?: string }) => <svg className={className}>...</svg>;
 const IdCardIcon = ({ className }: { className?: string }) => <svg className={className}>...</svg>;

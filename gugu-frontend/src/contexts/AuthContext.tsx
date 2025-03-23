@@ -7,19 +7,18 @@ import { User } from '@supabase/supabase-js';
 interface WorkerSignupData {
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
-  city: string;
+  full_name: string;
+  address: string; 
   skills: string[];
   hourlyRate: number;
+  companyName?: never;
 }
 
 interface EmployerSignupData {
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
-  city: string;
+  full_name: string;
+  address: string;
   companyName: string;
 }
 
@@ -126,8 +125,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: {
           data: {
             role: userRole,
-            firstName: data.firstName,
-            lastName: data.lastName
+            full_name: data.full_name,
+         
           }
         }
       });
@@ -138,9 +137,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profileData = {
         id: authData.user.id,
         email: data.email,
-        first_name: data.firstName,
-        last_name: data.lastName,
-        city: data.city,
+        full_name: data.full_name,
+        address: data.address,
         role: userRole,
         ...('companyName' in data && { company_name: data.companyName }),
         ...('skills' in data && { 

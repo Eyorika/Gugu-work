@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Navigation from './components/common/Navigation';
 import Home from './pages/Home';
 import LoginForm from './components/auth/LoginForm';
@@ -13,7 +13,7 @@ import Unauthorized from './pages/Unauthorized';
 import EmployerJobPost from './components/dashboard/employer/EmployerJobPost';
 import Profile from './components/profile/Profile';
 import ProfileForm from './components/profile/ProfileForm';
-
+import TestimonialPage from './components/TestimonialPage';
 function App() {
   const navigate = useNavigate();
 
@@ -35,6 +35,8 @@ function App() {
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<EmployerDashboard />} />
               <Route path="jobs" element={<EmployerJobPost />} />
+              <Route path="jobs/:id" element={<EmployerJobPost />} />
+
               <Route path="applications/:jobId" element={<JobApplications onClose={() => navigate('/employer/dashboard')} />} />
               <Route path="profile">
                 <Route index element={<Profile />} />
@@ -42,6 +44,7 @@ function App() {
               </Route>
             </Route>
           </Route>
+          
 
           {/* Worker protected routes */}
           <Route element={<ProtectedRoute requiredRole={UserRole.Worker} />}>
@@ -60,6 +63,8 @@ function App() {
 
           {/* Common profile routes (if needed) */}
           <Route element={<ProtectedRoute />}>
+          <Route path="/testimonials" element={<TestimonialPage />} />
+
             <Route path="/profile" element={<Navigate to="/employer/profile" replace />} />
           </Route>
 
@@ -68,6 +73,8 @@ function App() {
           <Route path="/worker-dashboard" element={<Navigate to="/worker/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+
+   
       </main>
     </>
   );
