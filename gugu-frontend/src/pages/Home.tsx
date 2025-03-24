@@ -91,6 +91,25 @@ export default function Home() {
           <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-primary/30 rounded-full mix-blend-overlay filter blur-[120px] animate-float" />
           <div className="absolute top-1/2 left-1/2 w-[700px] h-[700px] bg-secondary/20 rounded-full mix-blend-overlay filter blur-[140px] animate-float-delayed" />
           <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-yellow-400/15 rounded-full mix-blend-overlay filter blur-[100px] animate-pulse" />
+          
+          {/* Add these new elements */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-transparent via-white/5 to-transparent animate-opacity-pulse" />
+          
+          <motion.div 
+            className="absolute w-80 h-80 bg-gradient-to-tr from-cyan-400/20 to-blue-500/20 rounded-full blur-[100px]"
+            animate={{
+              x: [-100, 100, -100],
+              y: [0, 200, 0],
+              rotate: [0, 360, 0]
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
+          
+          <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,transparent_40%,black)]" />
         </div>
 
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-20 px-8 py-24 relative z-10">

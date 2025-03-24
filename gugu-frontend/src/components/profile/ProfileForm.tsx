@@ -94,60 +94,62 @@ const ProfileForm = () => {
     console.log('ProfileForm - User:', user);
     console.log('ProfileForm - Role:', role);
     
-    const loadProfile = async () => {
-      try {
-        console.log('ProfileForm - Loading profile data...');
-        if (!user?.id) {
-          console.error('ProfileForm - No user ID available');
-          setError('User not authenticated');
+    useEffect(() => {
+      let isMounted = true;
+
+      const loadProfile = async () => {
+        try {
+          if (!user?.id || formData.full_name) {
+            if (isMounted) setLoading(false);
+            return;
+          }
+          
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+          if (error) {
+            console.error('ProfileForm - Error loading profile:', error);
+            throw error;
+          }
+
+          console.log('ProfileForm - Profile data loaded:', data);
+          if (data) {
+            const updatedFormData = {
+              email: data.email || user?.email || '',
+              full_name: data.full_name || '',
+              username: data.username || '',
+              phone: data.phone || '',
+              national_id: data.national_id || '',
+              address: data.address || '',
+              bio: data.bio || '',
+              photo_url: data.photo_url || '',
+              company_name: data.company_name || '',
+              tin_number: data.tin_number || '',
+              cosigner_email: data.cosigner_email || '',
+              skills: data.skills || [],
+              hourly_rate: data.hourly_rate || 0
+            };
+            console.log('ProfileForm - Setting form data:', updatedFormData);
+            setFormData(updatedFormData);
+            calculateProgress(updatedFormData);
+          } else {
+            console.log('ProfileForm - No existing profile data found');
+          }
+        } catch (err) {
+          console.error('ProfileForm - Error:', err);
+          setError(err instanceof Error ? err.message : 'Failed to load profile');
+        } finally {
+          console.log('ProfileForm - Setting loading to false');
           setLoading(false);
-          return;
         }
-
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error('ProfileForm - Error loading profile:', error);
-          throw error;
-        }
-
-        console.log('ProfileForm - Profile data loaded:', data);
-        if (data) {
-          const updatedFormData = {
-            email: data.email || user?.email || '',
-            full_name: data.full_name || '',
-            username: data.username || '',
-            phone: data.phone || '',
-            national_id: data.national_id || '',
-            address: data.address || '',
-            bio: data.bio || '',
-            photo_url: data.photo_url || '',
-            company_name: data.company_name || '',
-            tin_number: data.tin_number || '',
-            cosigner_email: data.cosigner_email || '',
-            skills: data.skills || [],
-            hourly_rate: data.hourly_rate || 0
-          };
-          console.log('ProfileForm - Setting form data:', updatedFormData);
-          setFormData(updatedFormData);
-          calculateProgress(updatedFormData);
-        } else {
-          console.log('ProfileForm - No existing profile data found');
-        }
-      } catch (err) {
-        console.error('ProfileForm - Error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load profile');
-      } finally {
-        console.log('ProfileForm - Setting loading to false');
-        setLoading(false);
-      }
-    };
-
-    loadProfile();
+      };
+    
+      loadProfile();
+      return () => { isMounted = false };
+    }, [user?.id, role, formData.full_name]);
   }, [user?.id, role]);
 
  const calculateProgress = (data: ProfileFormData) => {
@@ -335,12 +337,12 @@ const ProfileForm = () => {
         completion_percent: progress,
         // Clear role-specific fields when not applicable
         ...(role === UserRole.Employer ? {
-          cosigner_email: null,
-          hourly_rate: null,
-          skills: null
+          company_name: formData.company_name,
+          tin_number: formData.tin_number
         } : {
-          company_name: null,
-          tin_number: null
+          cosigner_email: formData.cosigner_email,
+          hourly_rate: formData.hourly_rate,
+          skills: formData.skills
         })
       };
   

@@ -1,0 +1,149 @@
+-- Create conversations table
+CREATE TABLE IF NOT EXISTS public.conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  application_id UUID REFERENCES public.applications(id),
+  employer_id UUID NOT NULL REFERENCES public.profiles(id),
+  worker_id UUID NOT NULL REFERENCES public.profiles(id),
+  last_message TEXT,
+  last_message_sender_id UUID,
+  unread_count INTEGER DEFAULT 0,
+  CONSTRAINT different_participants CHECK (employer_id <> worker_id)
+);
+
+-- Create messages table
+CREATE TABLE IF NOT EXISTS public.messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
+  sender_id UUID NOT NULL REFERENCES public.profiles(id),
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  read BOOLEAN DEFAULT FALSE
+);
+
+-- Create index for faster message retrieval
+CREATE INDEX IF NOT EXISTS messages_conversation_id_idx ON public.messages(conversation_id);
+CREATE INDEX IF NOT EXISTS messages_created_at_idx ON public.messages(created_at);
+
+-- Create function to increment unread count
+CREATE OR REPLACE FUNCTION public.increment_unread_count(row_id UUID)
+RETURNS INTEGER AS $$
+BEGIN
+  RETURN (
+    SELECT COALESCE(unread_count, 0) + 1 
+    FROM public.conversations 
+    WHERE id = row_id
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to get user role (must be created before RLS policies that use it)
+CREATE OR REPLACE FUNCTION public.role_for(user_id UUID)
+RETURNS TEXT AS $$
+DECLARE
+  user_role TEXT;
+BEGIN
+  SELECT role INTO user_role FROM public.profiles WHERE id = user_id;
+  RETURN user_role;
+END;
+$$ LANGUAGE plpgsql;
+
+-- RLS Policies for conversations
+-- Users can see conversations they're part of
+CREATE POLICY "Conversations visibility" ON public.conversations
+FOR SELECT USING (
+  employer_id = auth.uid() OR worker_id = auth.uid()
+);
+
+-- Users can insert conversations where they're a participant
+CREATE POLICY "Conversations creation" ON public.conversations
+FOR INSERT WITH CHECK (
+  (employer_id = auth.uid() AND public.role_for(auth.uid()) = 'employer') OR
+  (worker_id = auth.uid() AND public.role_for(auth.uid()) = 'worker')
+);
+
+-- Users can update conversations they're part of (for updating last message, etc)
+CREATE POLICY "Conversations updates" ON public.conversations
+FOR UPDATE USING (
+  employer_id = auth.uid() OR worker_id = auth.uid()
+) WITH CHECK (
+  employer_id = auth.uid() OR worker_id = auth.uid()
+);
+
+-- RLS Policies for messages
+-- Users can see messages in conversations they're part of
+CREATE POLICY "Messages visibility" ON public.messages
+FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM public.conversations
+    WHERE id = conversation_id
+    AND (employer_id = auth.uid() OR worker_id = auth.uid())
+  )
+);
+
+-- Users can insert messages in conversations they're part of
+CREATE POLICY "Messages creation" ON public.messages
+FOR INSERT WITH CHECK (
+  sender_id = auth.uid() AND
+  EXISTS (
+    SELECT 1 FROM public.conversations
+    WHERE id = conversation_id
+    AND (employer_id = auth.uid() OR worker_id = auth.uid())
+  )
+);
+
+-- Users can update their own messages (for marking as read, etc)
+CREATE POLICY "Messages updates" ON public.messages
+FOR UPDATE USING (
+  EXISTS (
+    SELECT 1 FROM public.conversations
+    WHERE id = conversation_id
+    AND (employer_id = auth.uid() OR worker_id = auth.uid())
+  )
+) WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.conversations
+    WHERE id = conversation_id
+    AND (employer_id = auth.uid() OR worker_id = auth.uid())
+  )
+);
+
+-- Trigger to update conversation timestamp when new message is added
+
+
+CREATE TRIGGER update_conversation_trigger
+AFTER INSERT ON public.messages
+FOR EACH ROW EXECUTE FUNCTION public.update_conversation_on_message();
+
+-- Enable realtime for messaging tables
+ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+
+-- Enable realtime for the tables
+BEGIN;
+  DROP PUBLICATION IF EXISTS supabase_realtime;
+  CREATE PUBLICATION supabase_realtime;
+COMMIT;
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.conversations;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+
+
+CREATE OR REPLACE FUNCTION public.update_conversation_on_message()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE public.conversations
+  SET 
+    updated_at = NOW(),
+    last_message = NEW.content,
+    last_message_sender_id = NEW.sender_id,
+    unread_count = CASE
+      WHEN NEW.sender_id = employer_id OR NEW.sender_id = worker_id THEN unread_count
+      ELSE unread_count + 1
+    END
+  WHERE id = NEW.conversation_id;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;

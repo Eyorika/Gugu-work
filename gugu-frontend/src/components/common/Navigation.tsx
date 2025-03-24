@@ -2,13 +2,16 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useState } from 'react';
+import { useMessaging } from '../../contexts/MessagingContext';
 import { UserRole } from '../../lib/types';
 import { FiMenu, FiX } from 'react-icons/fi';
+import NotificationBell from './NotificationBell';
 
 export default function Navigation() {
   const { user, role, loading } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { unreadCount } = useMessaging();
 
   console.log('Navigation - Current state:', { user, role, loading });
 
@@ -22,11 +25,14 @@ export default function Navigation() {
     { to: '/employer/dashboard', text: 'Dashboard' },
     { to: '/employer/jobs', text: 'Manage Jobs' },
     { to: '/employer/profile', text: 'Profile' },
+    { to: '/employer/messages', text: 'Messages' },
   ];
 
   const workerLinks = [
     { to: '/worker/dashboard', text: 'Dashboard' },
     { to: '/worker/profile', text: 'Profile' },
+    { to: '/worker/applications', text: 'My Applications' },
+    { to: '/worker/messages', text: 'Messages' },
   ];
 
   if (loading) {
@@ -107,6 +113,7 @@ export default function Navigation() {
 
             {user && (
               <div className="flex items-center space-x-4">
+                <NotificationBell className="mr-2" />
                 <img 
                   src={user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email}`}
                   alt="Profile"

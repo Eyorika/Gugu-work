@@ -40,6 +40,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let isMounted = true;
+    
     const getSession = async () => {
       try {
         console.log('AuthProvider - Getting session...');

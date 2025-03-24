@@ -14,13 +14,17 @@ import EmployerJobPost from './components/dashboard/employer/EmployerJobPost';
 import Profile from './components/profile/Profile';
 import ProfileForm from './components/profile/ProfileForm';
 import TestimonialPage from './components/TestimonialPage';
+import MessagingPage from './components/messaging/MessagingPage';
+import { MessagingProvider } from './contexts/MessagingContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 function App() {
   const navigate = useNavigate();
 
   return (
-    <>
-      <Navigation />
-      <main className="container mx-auto px-4 py-8">
+    <NotificationProvider>
+      <MessagingProvider>
+        <Navigation />
+        <main className="container mx-auto px-4 py-8">
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Home />} />
@@ -42,6 +46,7 @@ function App() {
                 <Route index element={<Profile />} />
                 <Route path="edit" element={<ProfileForm />} />
               </Route>
+              <Route path="messages" element={<MessagingPage />} />
             </Route>
           </Route>
           
@@ -58,6 +63,7 @@ function App() {
                 <Route index element={<Profile />} />
                 <Route path="edit" element={<ProfileForm />} />
               </Route>
+              <Route path="messages" element={<MessagingPage />} />
             </Route>
           </Route>
 
@@ -76,7 +82,8 @@ function App() {
 
    
       </main>
-    </>
+      </MessagingProvider>
+    </NotificationProvider>
   );
 }
 

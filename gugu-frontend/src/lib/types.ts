@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 
 export type ApplicationStatus = 'pending' | 'accepted' | 'rejected' | 'withdrawn';
 
@@ -74,4 +73,67 @@ export enum UserRole {
       photo_url?: string;
       role: UserRole; 
     };
+  }
+
+  // Message types for chat functionality
+  export interface Message {
+    id: string;
+    conversation_id: string;
+    sender_id: string;
+    content: string;
+    created_at: string;
+    read: boolean;
+    sender?: {
+      id: string;
+      full_name: string;
+      photo_url?: string;
+      role: UserRole;
+    };
+  }
+
+  export interface Conversation {
+    id: string;
+    created_at: string;
+    updated_at: string;
+    application_id?: string;
+    employer_id: string;
+    worker_id: string;
+    last_message?: string;
+    last_message_sender_id?: string;
+    unread_count?: number;
+    employer?: {
+      id: string;
+      full_name: string;
+      company_name: string;
+      photo_url?: string;
+    };
+    worker?: {
+      id: string;
+      full_name: string;
+      photo_url?: string;
+    };
+    application?: {
+      id: string;
+      job_id: string;
+      status: ApplicationStatus;
+      job?: {
+        id: string;
+        title: string;
+      };
+    };
+  }
+
+  // Notification types
+  export type NotificationType = 'message' | 'application' | 'job_match' | 'system';
+
+  export interface Notification {
+    id: string;
+    user_id: string;
+    title: string;
+    message: string;
+    type: NotificationType;
+    related_id?: string;
+    created_at: string;
+    read: boolean;
+    data?: Record<string, any>;
   }

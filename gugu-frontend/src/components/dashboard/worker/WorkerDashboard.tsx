@@ -69,6 +69,22 @@ export default function WorkerDashboard() {
     }
   }, [user?.id]);
 
+  useEffect(() => {
+    let isMounted = true;
+    const subscription = supabase.channel('custom-all-channel')
+      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+        if (isMounted) loadData();
+      })
+      .subscribe();
+  
+    return () => {
+      if (isMounted) {
+        subscription.unsubscribe();
+      }
+      isMounted = false;
+    };
+  }, []);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();

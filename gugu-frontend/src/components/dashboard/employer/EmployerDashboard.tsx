@@ -334,7 +334,7 @@ export default function EmployerDashboard() {
                 </div>
               </div>
               
-              {/* Job Details */}
+      
               <dl className="space-y-3 mb-4">
                 <div className="flex items-center text-gray-600">
                   <LocationIcon className="w-5 h-5 mr-2 flex-shrink-0" />
@@ -342,7 +342,7 @@ export default function EmployerDashboard() {
                 </div>
                 <div className="flex items-center text-primary-600">
                   <CurrencyIcon className="w-5 h-5 mr-2 flex-shrink-0" />
-                  ${job.hourly_rate}/hr
+                  ETB{job.hourly_rate}/hr
                 </div>
                 <div className="flex items-center text-gray-500 text-sm">
                   <ClockIcon className="w-5 h-5 mr-2 flex-shrink-0" />
