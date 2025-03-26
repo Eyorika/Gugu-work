@@ -14,7 +14,7 @@ export default function LoginForm() {
     e.preventDefault();
     try {
       await signIn(email, password);
-      navigate('/dashboard');
+      // Navigation is handled in AuthContext
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     }

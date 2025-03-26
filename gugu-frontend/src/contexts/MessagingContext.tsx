@@ -84,8 +84,8 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
           last_message,
           last_message_sender_id,
           unread_count,
-          employer:profiles!employer_id(id, full_name, company_name, photo_url),
-          worker:profiles!worker_id(id, full_name, photo_url),
+          employer:profiles!employer_id(id, full_name, company_name, photo_url, username, last_active),
+          worker:profiles!worker_id(id, full_name, photo_url, username, last_active),
           application:applications!application_id(id, job_id, status, jobs(id, title))
         `);
 
@@ -154,10 +154,32 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
       if (fetchError) throw fetchError;
 
       // Transform the data to match the Message interface
-      const transformedMessages = (data || []).map(msg => ({
-        ...msg,
-        sender: msg.sender?.[0] || null
-      }));
+      const transformedMessages = (data || []).map(msg => {
+        // Handle sender as an object or array from Supabase's foreign table join
+        // Handle array or object response from Supabase
+        const senderData = msg.sender;
+        const senderObject = Array.isArray(senderData) 
+          ? senderData[0] 
+          : senderData;
+
+        let typedSender: Message['sender'] = undefined;
+        
+        if (senderObject) {
+          typedSender = {
+            id: senderObject?.id?.toString() || 'unknown',
+            full_name: senderObject?.full_name?.toString() || 'Unknown User',
+            photo_url: senderObject?.photo_url?.toString(),
+            role: (senderObject?.role === UserRole.Employer 
+              ? UserRole.Employer 
+              : UserRole.Worker)
+          };
+        }
+          
+        return {
+          ...msg,
+          sender: typedSender
+        } as Message;
+      });
 
       setMessages(transformedMessages);
     } catch (err) {
@@ -231,20 +253,23 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     try {
       setError(null);
 
-       const { data: existingConversations, error: checkError } = await supabase
+      // Check for any existing conversation between these users, regardless of application
+      // This ensures we don't create duplicate conversations between the same users
+      const { data: existingConversations, error: checkError } = await supabase
         .from('conversations')
         .select('id')
         .eq('worker_id', workerId)
-        .eq('employer_id', employerId)
-        .eq('application_id', applicationId || null);
+        .eq('employer_id', employerId);
 
       if (checkError) throw checkError;
 
-       if (existingConversations && existingConversations.length > 0) {
+      // If a conversation already exists, return its ID
+      if (existingConversations && existingConversations.length > 0) {
         return existingConversations[0].id;
       }
 
-       const { data: newConversation, error: createError } = await supabase
+      // Create a new conversation with the unique constraint enforced at the database level
+      const { data: newConversation, error: createError } = await supabase
         .from('conversations')
         .insert({
           worker_id: workerId,

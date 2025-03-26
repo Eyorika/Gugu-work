@@ -94,62 +94,60 @@ const ProfileForm = () => {
     console.log('ProfileForm - User:', user);
     console.log('ProfileForm - Role:', role);
     
-    useEffect(() => {
-      let isMounted = true;
+    let isMounted = true;
 
-      const loadProfile = async () => {
-        try {
-          if (!user?.id || formData.full_name) {
-            if (isMounted) setLoading(false);
-            return;
-          }
-          
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-          if (error) {
-            console.error('ProfileForm - Error loading profile:', error);
-            throw error;
-          }
-
-          console.log('ProfileForm - Profile data loaded:', data);
-          if (data) {
-            const updatedFormData = {
-              email: data.email || user?.email || '',
-              full_name: data.full_name || '',
-              username: data.username || '',
-              phone: data.phone || '',
-              national_id: data.national_id || '',
-              address: data.address || '',
-              bio: data.bio || '',
-              photo_url: data.photo_url || '',
-              company_name: data.company_name || '',
-              tin_number: data.tin_number || '',
-              cosigner_email: data.cosigner_email || '',
-              skills: data.skills || [],
-              hourly_rate: data.hourly_rate || 0
-            };
-            console.log('ProfileForm - Setting form data:', updatedFormData);
-            setFormData(updatedFormData);
-            calculateProgress(updatedFormData);
-          } else {
-            console.log('ProfileForm - No existing profile data found');
-          }
-        } catch (err) {
-          console.error('ProfileForm - Error:', err);
-          setError(err instanceof Error ? err.message : 'Failed to load profile');
-        } finally {
-          console.log('ProfileForm - Setting loading to false');
-          setLoading(false);
+    const loadProfile = async () => {
+      try {
+        if (!user?.id || formData.full_name) {
+          if (isMounted) setLoading(false);
+          return;
         }
-      };
-    
-      loadProfile();
-      return () => { isMounted = false };
-    }, [user?.id, role, formData.full_name]);
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('ProfileForm - Error loading profile:', error);
+          throw error;
+        }
+
+        console.log('ProfileForm - Profile data loaded:', data);
+        if (data) {
+          const updatedFormData = {
+            email: data.email || user?.email || '',
+            full_name: data.full_name || '',
+            username: data.username || '',
+            phone: data.phone || '',
+            national_id: data.national_id || '',
+            address: data.address || '',
+            bio: data.bio || '',
+            photo_url: data.photo_url || '',
+            company_name: data.company_name || '',
+            tin_number: data.tin_number || '',
+            cosigner_email: data.cosigner_email || '',
+            skills: data.skills || [],
+            hourly_rate: data.hourly_rate || 0
+          };
+          console.log('ProfileForm - Setting form data:', updatedFormData);
+          setFormData(updatedFormData);
+          calculateProgress(updatedFormData);
+        } else {
+          console.log('ProfileForm - No existing profile data found');
+        }
+      } catch (err) {
+        console.error('ProfileForm - Error:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load profile');
+      } finally {
+        console.log('ProfileForm - Setting loading to false');
+        setLoading(false);
+      }
+    };
+  
+    loadProfile();
+    return () => { isMounted = false };
   }, [user?.id, role]);
 
  const calculateProgress = (data: ProfileFormData) => {
@@ -261,7 +259,7 @@ const ProfileForm = () => {
                 photo_url: urlData.publicUrl,
                 updated_at: new Date().toISOString()
             })
-            .eq('id', user.id);
+            .eq('id', user.id); // Only use id to match RLS policy (id = auth.uid())
 
         if (updateError) {
             console.error('ProfileForm - Profile update error:', updateError);
@@ -321,6 +319,7 @@ const ProfileForm = () => {
     e.preventDefault();
     try {
       setError(null);
+      setSaving(true);
       
       // Add null check for user
       if (!user?.id) {
@@ -330,29 +329,52 @@ const ProfileForm = () => {
       // Validate form data
       await validationSchema.validate(formData, { abortEarly: false });
   
-      // Prepare update payload with role-specific field handling
-      const updatePayload = {
-        ...formData,
+      // Create a base payload with common fields
+      const basePayload = {
+        id: user.id,
+        email: formData.email,
+        full_name: formData.full_name,
+        username: formData.username,
+        phone: formData.phone,
+        national_id: formData.national_id,
+        address: formData.address,
+        bio: formData.bio,
+        photo_url: formData.photo_url,
         updated_at: new Date().toISOString(),
         completion_percent: progress,
-        // Clear role-specific fields when not applicable
-        ...(role === UserRole.Employer ? {
+        role: role // Ensure role is explicitly set
+      };
+      
+      // Add role-specific fields
+      let updatePayload;
+      if (role === UserRole.Employer) {
+        updatePayload = {
+          ...basePayload,
           company_name: formData.company_name,
-          tin_number: formData.tin_number
-        } : {
+          tin_number: formData.tin_number,
+          // Explicitly set worker-specific fields to NULL for employers
+          cosigner_email: null,
+          hourly_rate: null,
+          skills: null
+        };
+      } else { // Worker role
+        updatePayload = {
+          ...basePayload,
           cosigner_email: formData.cosigner_email,
           hourly_rate: formData.hourly_rate,
-          skills: formData.skills
-        })
-      };
-  
+          skills: formData.skills,
+          // Explicitly set employer-specific fields to NULL for workers
+          company_name: null,
+          tin_number: null
+        };
+      }
+      
+      console.log('ProfileForm - Submitting profile update:', updatePayload);
+      
       // Perform the update
       const { error: saveError } = await supabase
         .from('profiles')
-        .upsert({
-          id: user?.id,  // Add optional chaining
-          ...updatePayload
-        }, {
+        .upsert(updatePayload, {
           onConflict: 'id'
         });
   

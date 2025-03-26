@@ -106,11 +106,15 @@ export enum UserRole {
       full_name: string;
       company_name: string;
       photo_url?: string;
+      username?: string;
+      last_active?: string;
     };
     worker?: {
       id: string;
       full_name: string;
       photo_url?: string;
+      username?: string;
+      last_active?: string;
     };
     application?: {
       id: string;

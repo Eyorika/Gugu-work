@@ -1,7 +1,34 @@
 import { useState, useEffect, useRef } from 'react';
 import { useMessaging } from '../../contexts/MessagingContext';
-import { Message, UserRole } from '../../lib/types';
+import { UserRole } from '../../lib/types';
 import { useAuth } from '../../contexts/AuthContext';
+
+// Helper function to determine if a user is online (active in the last 5 minutes)
+const isUserOnline = (lastActive: string): boolean => {
+  const lastActiveTime = new Date(lastActive).getTime();
+  const currentTime = new Date().getTime();
+  const fiveMinutesInMs = 5 * 60 * 1000;
+  
+  return currentTime - lastActiveTime < fiveMinutesInMs;
+};
+
+// Helper function to format last active time
+const formatLastActive = (lastActive: string): string => {
+  const lastActiveDate = new Date(lastActive);
+  const now = new Date();
+  const diffInMinutes = Math.floor((now.getTime() - lastActiveDate.getTime()) / (1000 * 60));
+  
+  if (diffInMinutes < 1) return 'just now';
+  if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} hr ago`;
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+  
+  return lastActiveDate.toLocaleDateString();
+};
 
 const ChatInterface = () => {
   const { currentConversation, messages, loading, error, sendMessage } = useMessaging();
@@ -63,35 +90,58 @@ const ChatInterface = () => {
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full">
-      {/* Chat Header */}
-      <div className="p-4 border-b border-gray-200 flex items-center bg-white shadow-sm sticky top-0 z-10">
-        <div className="flex-shrink-0 mr-3">
-          {otherPerson?.photo_url ? (
-            <img 
-              src={otherPerson.photo_url} 
-              alt={otherPerson.full_name} 
-              className="h-10 w-10 rounded-full"
-            />
-          ) : (
-            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-500 font-medium">
-                {otherPerson?.full_name.charAt(0).toUpperCase()}
-              </span>
-            </div>
-          )}
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-gray-800">
-            {otherPerson?.full_name}
-            {role === UserRole.Worker && currentConversation.employer?.company_name && (
-              <span className="text-gray-500 ml-1 text-sm">({currentConversation.employer.company_name})</span>
+      {/* Enhanced Chat Header with User Profile */}
+      <div className="p-4 border-b border-gray-200 bg-white shadow-sm sticky top-0 z-10">
+        <div className="flex items-center">
+          <div className="flex-shrink-0 mr-4 relative">
+            {otherPerson?.photo_url ? (
+              <img 
+                src={otherPerson.photo_url} 
+                alt={otherPerson.full_name} 
+                className="h-12 w-12 rounded-full shadow-md border-2 border-white"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-full bg-gradient-to-r from-primary to-blue-500 flex items-center justify-center shadow-md">
+                <span className="text-white font-medium text-lg">
+                  {otherPerson?.full_name.charAt(0).toUpperCase()}
+                </span>
+              </div>
             )}
-          </h2>
-          {currentConversation.application && (
-            <p className="text-xs text-gray-500">
-              Re: {currentConversation.application.job?.title || 'Job Application'}
-            </p>
-          )}
+            {/* Enhanced Online status indicator */}
+            {otherPerson?.last_active && (
+              <div 
+                className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white ${isUserOnline(otherPerson.last_active) ? 'bg-green-500' : 'bg-gray-400'}`}
+                title={isUserOnline(otherPerson.last_active) ? 'Online' : `Last active ${formatLastActive(otherPerson.last_active)}`}
+              ></div>
+            )}
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-800">
+                {otherPerson?.full_name}
+                {role === UserRole.Worker && currentConversation.employer?.company_name && (
+                  <span className="text-gray-500 ml-1 text-sm">({currentConversation.employer.company_name})</span>
+                )}
+              </h2>
+              {otherPerson?.last_active && (
+                <span className={`text-xs px-2 py-1 rounded-full ${isUserOnline(otherPerson.last_active) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                  {isUserOnline(otherPerson.last_active) ? 'Online' : `Last active ${formatLastActive(otherPerson.last_active)}`}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center mt-1">
+              {otherPerson?.username && (
+                <p className="text-sm text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                  @{otherPerson.username.replace('.GUGU', '')}
+                </p>
+              )}
+              {currentConversation.application && (
+                <p className="text-xs text-gray-500 ml-2">
+                  • Re: {currentConversation.application.job?.title || 'Job Application'}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

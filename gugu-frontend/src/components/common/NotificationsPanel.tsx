@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { Notification, NotificationType } from '../../lib/types';
 import { formatDistanceToNow } from 'date-fns';
-import { FaEnvelope, FaFileAlt, FaCheckCircle, FaTimesCircle, FaBullhorn } from 'react-icons/fa';
+import { FaEnvelope, FaFileAlt, FaCheckCircle, FaBullhorn } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../lib/types';

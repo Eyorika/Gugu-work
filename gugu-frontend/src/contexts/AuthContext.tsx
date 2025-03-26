@@ -40,7 +40,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    let isMounted = true;
     
     const getSession = async () => {
       try {
@@ -142,6 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         full_name: data.full_name,
         address: data.address,
         role: userRole,
+        last_active: new Date().toISOString(),
         ...('companyName' in data && { company_name: data.companyName }),
         ...('skills' in data && { 
           skills: data.skills,
@@ -181,6 +181,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const userRole = profile?.role === 'employer' ? UserRole.Employer : UserRole.Worker;
       console.log('AuthProvider - Sign in successful, role:', userRole);
+      
+      // Update last_active timestamp
+      await supabase
+        .from('profiles')
+        .update({ last_active: new Date().toISOString() })
+        .eq('id', data.user.id);
       
       setUser(data.user);
       setRole(userRole);

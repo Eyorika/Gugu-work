@@ -1,7 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useMessaging } from '../../contexts/MessagingContext';
-import { Conversation, UserRole } from '../../lib/types';
+import { UserRole } from '../../lib/types';
 import { useAuth } from '../../contexts/AuthContext';
+
+// Helper function to determine if a user is online (active in the last 5 minutes)
+const isUserOnline = (lastActive?: string): boolean => {
+  if (!lastActive) return false;
+  
+  const lastActiveTime = new Date(lastActive).getTime();
+  const currentTime = new Date().getTime();
+  const fiveMinutesInMs = 5 * 60 * 1000;
+  
+  return currentTime - lastActiveTime < fiveMinutesInMs;
+};
+
+// Helper function to format last active time
+const formatLastActive = (lastActive?: string): string => {
+  if (!lastActive) return '';
+  
+  const lastActiveDate = new Date(lastActive);
+  const now = new Date();
+  const diffInMinutes = Math.floor((now.getTime() - lastActiveDate.getTime()) / (1000 * 60));
+  
+  if (diffInMinutes < 1) return 'just now';
+  if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} hr ago`;
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 7) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+  
+  return lastActiveDate.toLocaleDateString();
+};
 
 const MessageList = () => {
   const { conversations, loading, error, setCurrentConversation, unreadCount } = useMessaging();
@@ -70,32 +101,57 @@ const MessageList = () => {
                 onClick={() => setCurrentConversation(conversation)}
               >
                 <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 relative">
                     {otherPerson?.photo_url ? (
                       <img 
                         src={otherPerson.photo_url} 
                         alt={otherPerson.full_name} 
-                        className="h-10 w-10 rounded-full"
+                        className="h-10 w-10 rounded-full shadow-sm border border-gray-100"
                       />
                     ) : (
-                      <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-gray-500 font-medium">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-r from-primary to-blue-500 flex items-center justify-center shadow-sm">
+                        <span className="text-white font-medium">
                           {otherPerson?.full_name.charAt(0).toUpperCase()}
                         </span>
                       </div>
                     )}
+                    {/* Enhanced Online status indicator */}
+                    {otherPerson?.last_active && (
+                      <div 
+                        className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ${isUserOnline(otherPerson.last_active) ? 'bg-green-500' : 'bg-gray-400'}`}
+                        title={isUserOnline(otherPerson.last_active) ? 'Online' : `Last active ${formatLastActive(otherPerson.last_active)}`}
+                      ></div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {otherPerson?.full_name}
-                        {role === UserRole.Worker && conversation.employer?.company_name && (
-                          <span className="text-gray-500 ml-1">({conversation.employer.company_name})</span>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {otherPerson?.full_name}
+                          {role === UserRole.Worker && conversation.employer?.company_name && (
+                            <span className="text-gray-500 ml-1">({conversation.employer.company_name})</span>
+                          )}
+                        </p>
+                        {otherPerson?.username && (
+                          <p className="text-xs text-gray-500 truncate bg-gray-50 px-1.5 py-0.5 rounded-full inline-block">
+                            @{otherPerson.username.replace('.GUGU', '')}
+                          </p>
                         )}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(conversation.updated_at).toLocaleDateString()}
-                      </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">
+                          {new Date(conversation.updated_at).toLocaleDateString()}
+                        </p>
+                        {otherPerson?.last_active && (
+                          <p className="text-xs text-gray-500">
+                            {isUserOnline(otherPerson.last_active) ? (
+                              <span className="text-green-500">Online</span>
+                            ) : (
+                              formatLastActive(otherPerson.last_active)
+                            )}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     {conversation.application && (
                       <p className="text-xs text-gray-500 mt-1">

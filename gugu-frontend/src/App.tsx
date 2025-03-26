@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Navigation from './components/common/Navigation';
+import Sidebar from './components/common/Sidebar';
 import Home from './pages/Home';
+import { SidebarProvider } from './contexts/SidebarContext';
 import LoginForm from './components/auth/LoginForm';
 import SignupForm from './components/auth/SignupForm';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -21,10 +23,14 @@ function App() {
   const navigate = useNavigate();
 
   return (
-    <NotificationProvider>
-      <MessagingProvider>
-        <Navigation />
-        <main className="container mx-auto px-4 py-8">
+    <SidebarProvider>
+      <NotificationProvider>
+        <MessagingProvider>
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar />
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <Navigation />
+              <main className="flex-1 overflow-y-auto px-4 py-8">
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Home />} />
@@ -81,9 +87,12 @@ function App() {
         </Routes>
 
    
-      </main>
-      </MessagingProvider>
-    </NotificationProvider>
+              </main>
+            </div>
+          </div>
+        </MessagingProvider>
+      </NotificationProvider>
+    </SidebarProvider>
   );
 }
 

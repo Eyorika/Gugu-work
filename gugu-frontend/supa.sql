@@ -19,7 +19,8 @@ ADD COLUMN company_name TEXT
   CHECK (role = 'employer' OR company_name IS NULL),
 ADD COLUMN tin_number CHAR(10) 
   CHECK (role = 'employer' OR tin_number IS NULL),
-ADD COLUMN trade_license TEXT;
+ADD COLUMN trade_license TEXT,
+ADD COLUMN last_active TIMESTAMPTZ DEFAULT NOW();
 
 -- 2. Update jobs table foreign key constraint
 ALTER TABLE public.jobs
