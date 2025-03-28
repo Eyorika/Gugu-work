@@ -81,12 +81,20 @@ BEGIN
     employer_name TEXT;
     worker_name TEXT;
   BEGIN
-    SELECT j.title, e.company_name, w.full_name
-    INTO job_title, employer_name, worker_name
-    FROM public.jobs j
-    JOIN public.profiles e ON j.employer_id = e.id
-    JOIN public.profiles w ON NEW.worker_id = w.id
-    WHERE j.id = NEW.job_id;
+    -- Get job and profile details with better error handling
+    BEGIN
+      SELECT j.title, e.company_name, w.full_name
+      INTO job_title, employer_name, worker_name
+      FROM public.jobs j
+      JOIN public.profiles e ON j.employer_id = e.id
+      JOIN public.profiles w ON NEW.worker_id = w.id
+      WHERE j.id = NEW.job_id;
+    EXCEPTION WHEN OTHERS THEN
+      -- Set default values if the query fails
+      job_title := 'Unknown Job';
+      employer_name := 'Unknown Employer';
+      worker_name := 'Unknown Worker';
+    END;
     
     -- Notify worker when status changes (only for UPDATE operations)
     IF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
@@ -110,15 +118,29 @@ BEGIN
     
     -- Notify employer for new applications
     IF TG_OP = 'INSERT' AND NEW.status = 'pending' THEN
+      -- Get the employer_id with error handling
+      DECLARE
+        employer_id UUID;
+      BEGIN
+        SELECT j.employer_id INTO employer_id FROM public.jobs j WHERE j.id = NEW.job_id;
+        
+        IF employer_id IS NULL THEN
+          RAISE NOTICE 'Could not find employer_id for job_id: %', NEW.job_id;
+          RETURN NEW;
+        END IF;
+        
         PERFORM public.create_notification(
-          (SELECT employer_id FROM public.jobs WHERE id = NEW.job_id),
+          employer_id,
           'New Application',
-          'New application from ' || worker_name || ' for "' || job_title || '"',
+          'New application from ' || COALESCE(worker_name, 'a worker') || ' for "' || COALESCE(job_title, 'a job') || '"',
           'application',
           NEW.id,
           jsonb_build_object('job_id', NEW.job_id, 'worker_id', NEW.worker_id)
         );
-      END IF;
+      EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'Error creating notification: %', SQLERRM;
+      END;
+    END IF;
   END;
   
   RETURN NEW;

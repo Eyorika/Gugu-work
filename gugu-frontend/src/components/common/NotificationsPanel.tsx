@@ -43,7 +43,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ onClose }) => {
       navigate(role === UserRole.Employer ? '/employer/messages' : '/worker/messages');
     } else if (notification.type === 'application' && notification.data?.job_id) {
       if (role === UserRole.Employer) {
-        navigate(`/employer/jobs/${notification.data.job_id}/applications`);
+        navigate(`/employer/jobs/${notification.data.job_id}`);
       } else {
         navigate('/worker/applications');
       }

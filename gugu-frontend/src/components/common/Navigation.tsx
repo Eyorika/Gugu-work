@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 export default function Navigation() {
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const { toggle } = useSidebar();
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -141,8 +142,4 @@ export default function Navigation() {
       </AnimatePresence>
     </header>
   );
-}
-
-function setShowMobileFilters(arg0: boolean) {
-  throw new Error('Function not implemented.');
 }

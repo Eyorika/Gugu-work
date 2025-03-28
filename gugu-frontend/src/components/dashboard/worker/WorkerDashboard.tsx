@@ -4,6 +4,8 @@ import { JobPost, ApplicationStatus } from '../../../lib/types';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import JobFilters, { Filters } from '../../../components/others/JobFilters';
+import { div } from 'framer-motion/client';
+import ApplicationForm from '../../../components/applications/ApplicationForm';
 
 interface Application {
   id: string;
@@ -19,7 +21,7 @@ interface EmployerProfile {
   username: string;
 }
 
-interface JobWithStatus extends Omit<JobPost, 'salary'> {
+export interface JobWithStatus extends Omit<JobPost, 'salary'> {
   applicationStatus: ApplicationStatus | null;
   applications: Application[];
   employer: EmployerProfile;
@@ -258,6 +260,9 @@ export default function WorkerDashboard() {
     }
   };
 
+  const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<JobWithStatus | null>(null);
+
   const handleApply = async (jobId: string) => {
     try {
       setError(null);
@@ -271,18 +276,14 @@ export default function WorkerDashboard() {
         throw new Error('You have already applied for this job');
       }
 
-      const { error: applicationError } = await supabase
-        .from('applications')
-        .insert({
-          job_id: jobId,
-          worker_id: user?.id,
-          status: 'pending',
-          created_at: new Date().toISOString()
-        });
-
-      if (applicationError) throw applicationError;
-      
-      await loadData();
+      // Find the job and show application form
+      const job = jobs.find(job => job.id === jobId);
+      if (job) {
+        setSelectedJob(job);
+        setShowApplicationForm(true);
+      } else {
+        throw new Error('Job not found');
+      }
     } catch (err) {
       console.error('Error applying for job:', err);
       setError(err instanceof Error ? err.message : 'Failed to apply for job');
@@ -349,11 +350,21 @@ export default function WorkerDashboard() {
   const currentApplications = filteredApplications.slice(indexOfFirstApplication, indexOfLastApplication);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 relative flex gap-6">
-      <div className="flex-1 space-y-12">
-        <div className="flex flex-wrap gap-4 justify-between items-center bg-white p-6 rounded-lg shadow-sm">
-          <h1 className="text-3xl font-bold text-gray-900">Worker Dashboard</h1>
-          <div className="flex gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Application Form Overlay */}
+      {showApplicationForm && selectedJob && (
+        <ApplicationForm
+          job={selectedJob}
+          onClose={() => setShowApplicationForm(false)}
+          onSubmit={() => {
+            loadData();
+            setShowApplicationForm(false);
+          }}
+        />
+      )}
+      <div className="flex flex-wrap gap-4 justify-between items-center bg-white p-6 rounded-lg shadow-sm">
+        <h1 className="text-3xl font-bold text-gray-900">Worker Dashboard</h1>
+        <div className="flex gap-4">
           <Link
             to="/worker/profile/edit"
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200"
@@ -375,37 +386,132 @@ export default function WorkerDashboard() {
         </div>
       </div>
       
-      {/* Available Jobs Section */}
-      <div className="flex-1 space-y-12">
-        <section className="bg-white p-6 rounded-lg shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900">Available Jobs</h2>
-          </div>
-          <JobFilters
-            filters={filters}
-            setFilters={setFilters}
-            className="mb-4"
-          />
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {currentJobs.map(job => (
-              <div key={job.id} className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100 group relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative z-10">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{job.title}</h3>
-                  <p className="text-gray-600 mb-4">{job.location}</p>
-                  <p className="text-primary font-medium mb-4">${job.hourly_rate ? job.hourly_rate.toFixed(2) : 'N/A'} / hour</p>
-                  <p className="text-gray-700 mb-4 line-clamp-3">{job.description}</p>
-                  <button
-                    onClick={() => handleApply(job.id)}
-                    className="bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark"
-                  >
-                    Apply Now
-                  </button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* My Applications Section */}
+        <div className="lg:col-span-1">
+          <section className="bg-white p-6 rounded-lg shadow-sm h-full">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">My Applications</h2>
+              <div className="relative">
+                <select
+                  value={applicationSortOrder}
+                  onChange={(e) => setApplicationSortOrder(e.target.value as SortOrder)}
+                  className="appearance-none bg-white border border-gray-200 rounded-md py-2 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                  <option value="today">Today</option>
+                  <option value="this-week">This Week</option>
+                  <option value="this-month">This Month</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                  </svg>
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
+            </div>
+            
+            {currentApplications.length > 0 ? (
+              <div className="space-y-4">
+                {currentApplications.map(application => (
+                  <div key={application.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-lg font-medium text-gray-900">{application.title}</h3>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(application.applicationStatus)}`}>
+                        {application.applicationStatus.charAt(0).toUpperCase() + application.applicationStatus.slice(1)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-2">{application.employer?.company_name || 'Unknown Company'}</p>
+                    <p className="text-sm text-gray-500 mb-2">{application.location}</p>
+                    <p className="text-sm text-primary font-medium mb-2">${application.hourly_rate.toFixed(2)} / hour</p>
+                    <p className="text-xs text-gray-400">Applied {formatDate(application.created_at)}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">You haven't applied to any jobs yet.</p>
+              </div>
+            )}
+            
+            {totalApplicationPages > 1 && (
+              <div className="mt-6">
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {Array.from({ length: totalApplicationPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentApplicationPage(pageNum)}
+                      className={`px-3 py-1 text-sm rounded ${currentApplicationPage === pageNum
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+        
+        {/* Available Jobs Section */}
+        <div className="lg:col-span-2">
+          <section className="bg-white p-6 rounded-lg shadow-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">Available Jobs</h2>
+            </div>
+            <JobFilters
+              filters={filters}
+              setFilters={setFilters}
+              className="mb-4"
+            />
+            <div className="grid gap-4 md:grid-cols-2">
+              {currentJobs.map(job => (
+                <div key={job.id} className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100 group relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary to-secondary opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
+                  <div className="relative z-10">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{job.title}</h3>
+                    <p className="text-gray-600 mb-2">{job.location}</p>
+                    <p className="text-primary font-medium mb-2">${job.hourly_rate ? job.hourly_rate.toFixed(2) : 'N/A'} / hour</p>
+                    <p className="text-gray-700 mb-4 line-clamp-3">{job.description}</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-400">Posted {formatDate(job.created_at || '')}</span>
+                      <button
+                        onClick={() => handleApply(job.id)}
+                        disabled={job.applicationStatus !== null}
+                        className={`px-4 py-2 rounded text-sm font-medium ${job.applicationStatus !== null
+                          ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                          : 'bg-primary text-white hover:bg-primary-dark'}`}
+                      >
+                        {job.applicationStatus !== null ? 'Applied' : 'Apply Now'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {totalJobPages > 1 && (
+              <div className="mt-6">
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {Array.from({ length: totalJobPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentJobPage(pageNum)}
+                      className={`px-3 py-1 text-sm rounded ${currentJobPage === pageNum
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
 
         {/* Pagination Controls */}
         <div className="mt-6 space-y-4">
@@ -448,7 +554,5 @@ export default function WorkerDashboard() {
           )}
         </div>
       </div>
-      </div>
-    </div>
   );
 }

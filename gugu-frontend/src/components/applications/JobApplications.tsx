@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ApplicationStatus, UserRole, JobPost } from '../../lib/types';
+import { ApplicationStatus, UserRole, JobPost, NotificationType } from '../../lib/types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMessaging } from '../../contexts/MessagingContext';
 import ShareOverlay from '../common/ShareOverlay';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 interface WorkerProfile {
   id: string;
@@ -51,6 +52,7 @@ const JobApplications = ({ onClose, job }: Props) => {
   const [shareData, setShareData] = useState({ title: '', description: '', url: '' });
   const { role, user } = useAuth();
   const { startConversation } = useMessaging();
+  const { fetchNotifications } = useNotifications();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -183,12 +185,62 @@ const JobApplications = ({ onClose, job }: Props) => {
 
       if (updateError) throw updateError;
 
+      // Create a notification manually if needed (database triggers should handle this automatically)
+      // This is a fallback in case the database trigger doesn't work
+      if (role === UserRole.Employer && (newStatus === 'accepted' || newStatus === 'rejected')) {
+        try {
+          // Create notification for the worker
+          await createNotificationForStatusChange(application, newStatus);
+        } catch (notificationError) {
+          console.error('Error creating notification:', notificationError);
+          // Don't throw the error as the status update was successful
+        }
+      }
+
+      // Update the local state
       setApplications(prev => prev.map(app => 
         app.id === applicationId ? { ...app, status: newStatus } : app
       ));
+
+      // Refresh notifications to show the new notification
+      fetchNotifications();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update application status');
     }
+  };
+
+  const createNotificationForStatusChange = async (application: Application, newStatus: ApplicationStatus) => {
+    if (!application.worker_id || !application.jobs) return;
+    
+    const recipientId = application.worker_id;
+    const jobTitle = application.jobs.title || 'Job';
+    const companyName = application.jobs.employer?.company_name || 'Employer';
+    
+    let title = '';
+    let message = '';
+    
+    if (newStatus === 'accepted') {
+      title = 'Application Accepted';
+      message = `Your application for "${jobTitle}" has been accepted by ${companyName}`;
+    } else if (newStatus === 'rejected') {
+      title = 'Application Rejected';
+      message = `Your application for "${jobTitle}" has been rejected by ${companyName}`;
+    } else {
+      title = 'Application Status Updated';
+      message = `Your application for "${jobTitle}" status has been updated to ${newStatus}`;
+    }
+    
+    const notificationType: NotificationType = 'application';
+    
+    // Create the notification in the database
+    await supabase.from('notifications').insert({
+      user_id: recipientId,
+      title,
+      message,
+      type: notificationType,
+      related_id: application.id,
+      data: { job_id: application.job_id, status: newStatus }
+    });
   };
 
   const handleMessage = async (application: Application) => {
